@@ -1,8 +1,9 @@
 from math import sin, exp, pi
+
+import matplotlib.pyplot as plt
 import numpy as np
 from pycuda.compiler import SourceModule
 import pycuda.driver as cuda
-import time as t
 import pycuda.autoinit
 
 
@@ -69,7 +70,7 @@ class SccfCPU(Sccf):
         while i < n:
             j = 0
             k = i
-            while j <= m:
+            while j < m:
                 if j <= i:
                     c[i][j] = self.u[k] * self.w[i]
                     k -= 1
@@ -104,7 +105,8 @@ class SccfGPU(Sccf):
                 int idx = blockIdx.x * blockDim.x + threadIdx.x;
                 if (idx < n) {
                     for (int i = 0; i < m; i++)
-                        c[idx*n + i] = u[idx] * w[idx-i];
+                        if (idx >= i)
+                            c[idx*n + i] = u[idx-i] * w[idx];
                 }
             }
         """)
@@ -143,9 +145,10 @@ class SccfGPU(Sccf):
                 }
             }
         """)
+
         column_sum = mod.get_function("column_sum")
 
-        block_size = 256
+        block_size = 1024
         grid_size = (n + block_size - 1) // block_size
         column_sum(c_dev, csum_dev, np.int32(n), np.int32(m), block=(block_size, 1, 1),
                    grid=(grid_size, 1, 1))
@@ -155,11 +158,12 @@ class SccfGPU(Sccf):
 
 
 if __name__ == "__main__":
-    n = 5
-    m = 3
+    n = 500
+    m = n - int(n * 0.4)
 
-    u = np.array([1, 2, 3, 4, 5], 'float32')
-    w = np.array([1, 2, 3, 4, 5], 'float32')
+    u = np.array([np.random.uniform(0, 20) for x in range(n)]).astype(np.float32)
+    w = np.array([np.random.uniform(0, 20) for x in range(m, n+m)]).astype(np.float32)
+    # w = np.array([np.random.uniform(0, 20) for x in range(n)]).astype(np.float32)
     c = np.zeros(shape=(n, n), dtype=np.float32)
 
     u_gpu = cuda.mem_alloc(n * u.dtype.itemsize)
@@ -174,10 +178,11 @@ if __name__ == "__main__":
                         __global__ void convolution(float *u, float *w, float *c, int n, int m)
                         {
                             int idx = blockIdx.x * blockDim.x + threadIdx.x;
-                            int idy = blockIdx.y * blockDim.y + threadIdx.y;
                             if (idx < n) {
-                                for (int i = 0; i < m; i++)
-                                    c[idx*n + i] = u[idx] * w[idx-i];
+                                for (int i = 0; i < m; i++){
+                                    if (idx >= i)
+                                        c[idx*n + i] = u[idx-i] * w[idx];
+                                }
                             }
                         }
                     """)
@@ -189,5 +194,27 @@ if __name__ == "__main__":
     column_sum(u_gpu, w_gpu, c_gpu, np.int32(n), np.int32(m), block=(block_size, 1, 1), grid=(grid_size, 1, 1))
 
     cuda.memcpy_dtoh(c, c_gpu)
-    print()
-    print(c)
+
+
+
+    c2 = np.zeros(shape=(n, n), dtype=np.float32)
+    i = 0
+    while i < n:
+        j = 0
+        k = i
+        while j < m:
+            if j <= i:
+                c2[i][j] = u[k] * w[i]
+                print(f'{i} {k}', end="  ")
+                k -= 1
+            j += 1
+        i += 1
+        print()
+
+
+
+    _, axes = plt.subplots(1, 3)
+    axes[0].imshow(c2 - c)
+    axes[1].imshow(c)
+    axes[2].imshow(c2)
+    plt.show()

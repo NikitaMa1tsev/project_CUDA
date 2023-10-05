@@ -13,6 +13,7 @@ def gpu_check() -> bool:
     else:
         return False
 
+
 class Test:
     def __init__(self):
         self.num = 1
@@ -21,10 +22,10 @@ class Test:
         tau = [1.0, 1.8]
         dts0 = [0, 0.4]
         dt0 = [0, 0.06]
-        fs = [10, 20, 40, 60, 80, 100, 1000]
+        fs = [10, 20, 40, 60, 80, 100, 250]
         combinations = itertools.product([20.03], tau, [1], dts0, dt0, fs)
         for combination in combinations:
-            print(f'testing: {self.num / 42 * 100}%')
+            print(f'testing: {self.num / 56 * 100}%')
             self.run_test(*combination)
             self.num += 1
 
@@ -33,7 +34,6 @@ class Test:
             sccf = SccfGPU(t_imp, tau, f0, dts0, dt0, fs)
         else:
             sccf = SccfCPU(t_imp, tau, f0, dts0, dt0, fs)
-
         sccf.run()
         self.print_plot(sccf)
         self.output_in_excel(sccf)
@@ -61,6 +61,7 @@ class Test:
         ws = wb["List_3"]
         for r, statN in enumerate(sccf.c_sum, start=1):
             ws.cell(row=r, column=1).value = statN
+
         wb.save('sources/tables/sccf_' + str(self.num) + '.xlsx')
 
     def print_plot(self, sccf):
@@ -75,7 +76,7 @@ class Test:
         plt.ylabel("function")
 
         plt.subplot(1, 2, 2)
-        plt.plot(sccf.c_sum, marker='o', markersize=1, label='c_sum', color='g')
+        plt.plot(sccf.tu_samples[:len(sccf.c_sum)], sccf.c_sum, marker='o', markersize=1, label='c_sum', color='g')
         plt.legend()
         plt.figtext(0.15, 0.95, f"f0 = {sccf.f0 / 10 ** 6} МГц")
         plt.figtext(0.15, 0.9, f"tau = {(sccf.tau * 10 ** 6):.1f} мкс")
@@ -102,7 +103,7 @@ class TestOne(Test):
         plt.ylabel("function")
 
         plt.subplot(1, 2, 2)
-        plt.plot(sccf.c_sum, marker='o', markersize=1, label='c_sum', color='g')
+        plt.plot(sccf.tu_samples[:len(sccf.c_sum)], sccf.c_sum, marker='o', markersize=1, label='c_sum', color='g')
         plt.legend()
         plt.figtext(0.15, 0.95, f"f0 = {sccf.f0 / 10 ** 6} МГц")
         plt.figtext(0.15, 0.9, f"tau = {(sccf.tau * 10 ** 6):.1f} мкс")
@@ -114,4 +115,3 @@ class TestOne(Test):
 
         plt.grid()
         plt.show()
-
