@@ -181,6 +181,7 @@ class Ui_MainWindow(object):
         dts0 = float(self.comboBox_6.currentText())
         dt0 = float(self.lineEdit_3.text())
         test = TestOne()
+        print(test)
         test.run_test(t_imp, tau, f0, dts0, dt0, fs)
 
     def btn_click_test(self):

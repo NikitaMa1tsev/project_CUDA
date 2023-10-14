@@ -1,5 +1,4 @@
 from math import sin, exp, pi
-
 import matplotlib.pyplot as plt
 import numpy as np
 from pycuda.compiler import SourceModule
@@ -9,6 +8,7 @@ import pycuda.autoinit
 
 class Sccf:
     def __init__(self, t_imp, tau, f0, coef_dts0, dt0, fs):
+        self.coef_dts0 = coef_dts0
         self.period_sample = 10 ** (-11)
         self.dts0 = coef_dts0 * self.period_sample
         self.tau = tau * 10 ** (-6)
@@ -163,7 +163,6 @@ if __name__ == "__main__":
 
     u = np.array([np.random.uniform(0, 20) for x in range(n)]).astype(np.float32)
     w = np.array([np.random.uniform(0, 20) for x in range(m, n+m)]).astype(np.float32)
-    # w = np.array([np.random.uniform(0, 20) for x in range(n)]).astype(np.float32)
     c = np.zeros(shape=(n, n), dtype=np.float32)
 
     u_gpu = cuda.mem_alloc(n * u.dtype.itemsize)
